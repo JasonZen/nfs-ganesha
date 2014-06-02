@@ -540,6 +540,19 @@ int lustre_claim_filesystem(struct fsal_filesystem *fs, struct fsal_export *exp)
 	glist_init(&lustre_fs->exports);
 
 	lustre_fs->fs = fs;
+
+	/* Locate Lustre's fs name in fs->device */
+	/* Lustre fs->device looks like <servername>@tcp<n>:/<fsname> */
+
+	/* First locate the ":" */
+	char *fsn = NULL;
+	for (fsn = fs->device; *fsn != ':' && *fsn != '\0'; fsn++)
+		; /* checkpatch asked for this... */
+
+	/* Bypass ":/" by adding 2 bytes to the address */
+	lustre_fs->fsname = fsn+2;
+
+	/* Lustre_fs is ready, store it in the FS */
 	fs->private = lustre_fs;
 
 already_claimed:
