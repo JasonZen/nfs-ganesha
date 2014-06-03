@@ -478,6 +478,9 @@ void lustre_export_ops_init(struct export_ops *ops)
 
 void free_lustre_filesystem(struct lustre_filesystem *lustre_fs)
 {
+	if (lustre_fs->fsname)
+		gsh_free(lustre_fs->fsname);
+
 	gsh_free(lustre_fs);
 }
 
@@ -541,16 +544,21 @@ int lustre_claim_filesystem(struct fsal_filesystem *fs, struct fsal_export *exp)
 
 	lustre_fs->fs = fs;
 
-	/* Locate Lustre's fs name in fs->device */
-	/* Lustre fs->device looks like <servername>@tcp<n>:/<fsname> */
+	/* Call llapi to get Lustre fs name
+	 * This is not the fsname is the mntent */
+	lustre_fs->fsname = gsh_malloc(MAXPATHLEN);
+	if (lustre_fs->fsname == NULL) {
+		LogCrit(COMPONENT_FSAL,
+			"Out of memory to claim file system %s",
+			fs->path);
+		retval = ENOMEM;
+		goto errout;
+	}
 
-	/* First locate the ":" */
-	char *fsn = NULL;
-	for (fsn = fs->device; *fsn != ':' && *fsn != '\0'; fsn++)
-		; /* checkpatch asked for this... */
-
-	/* Bypass ":/" by adding 2 bytes to the address */
-	lustre_fs->fsname = fsn+2;
+	/* Get information from llapi */
+	retval = llapi_search_fsname(fs->path, lustre_fs->fsname);
+	if (retval)
+		goto errout;
 
 	/* Lustre_fs is ready, store it in the FS */
 	fs->private = lustre_fs;
