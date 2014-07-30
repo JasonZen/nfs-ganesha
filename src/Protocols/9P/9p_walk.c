@@ -107,6 +107,22 @@ int _9p_walk(struct _9p_request_data *req9p, void *worker_data,
 		/* This is not a TATTACH fid */
 		pnewfid->from_attach = false;
 
+#ifdef USE_SELINUX
+		/* Make a second copy of scon (cloned fid */
+		/* could be clunked earlier) */
+		pnewfid->selinux.scon = gsh_malloc(
+				pfid->selinux.scon_size);
+		if (pnewfid->selinux.scon == NULL)
+			return _9p_rerror(req9p, worker_data, msgtag,
+					  ENOMEM, plenout, preply);
+
+		memcpy(pnewfid->selinux.scon,
+		       pfid->selinux.scon,
+		       pfid->selinux.scon_size);
+		pnewfid->selinux.scon_size =
+			 pfid->selinux.scon_size;
+#endif
+
 		/* Increments refcount */
 		(void) cache_inode_lru_ref(pnewfid->pentry, LRU_REQ_STALE_OK);
 	} else {
@@ -147,6 +163,7 @@ int _9p_walk(struct _9p_request_data *req9p, void *worker_data,
 		pnewfid->op_context = pfid->op_context;
 		pnewfid->ppentry = pfid->pentry;
 		strncpy(pnewfid->name, name, MAXNAMLEN-1);
+
 
 		/* gdata ref is not hold : the pfid, which use same gdata */
 		/*  will be clunked after pnewfid */
@@ -198,9 +215,24 @@ int _9p_walk(struct _9p_request_data *req9p, void *worker_data,
 					  plenout, preply);
 			break;
 		}
+#ifdef USE_SELINUX
+		/* Make a second copy of scon (cloned fid */
+		/*  could be clunked earlier) */
+		pnewfid->selinux.scon = gsh_malloc(
+					pfid->selinux.scon_size);
+		if (pnewfid->selinux.scon == NULL)
+			return _9p_rerror(req9p, worker_data, msgtag,
+					  ENOMEM, plenout, preply);
+
+		memcpy(pnewfid->selinux.scon,
+		       pfid->selinux.scon,
+		       pfid->selinux.scon_size);
+
+		pnewfid->selinux.scon_size =
+			pfid->selinux.scon_size;
+#endif
 
 	}
-
 	/* keep info on new fid */
 	req9p->pconn->fids[*newfid] = pnewfid;
 
