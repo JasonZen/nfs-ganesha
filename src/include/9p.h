@@ -301,7 +301,6 @@ struct _9p_fid {
 			u64 xattr_offset;
 			bool xattr_write;
 		} xattr;
-
 	} specdata;
 };
 
