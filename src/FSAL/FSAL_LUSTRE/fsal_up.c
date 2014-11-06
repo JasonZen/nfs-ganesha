@@ -161,6 +161,10 @@ static int lustre_changelog_upcall(struct lustre_filesystem *lustre_fs,
 		rc = lustre_invalidate_entry(lustre_fs,
 					     event_func,
 					     &rec->cr_pfid);
+		if (rc)
+			LogDebug(COMPONENT_FSAL,
+				 "Could not invalidate fid="DFID,
+				 PFID(&rec->cr_pfid));
 		break;
 	case CL_RENAME:
 		/* invalidate parent entry
@@ -168,17 +172,40 @@ static int lustre_changelog_upcall(struct lustre_filesystem *lustre_fs,
 		rc = lustre_invalidate_entry(lustre_fs,
 					     event_func,
 					     &rnm->cr_spfid);
+		if (rc)
+			LogDebug(COMPONENT_FSAL,
+				 "Could not invalidate fid="DFID,
+				 PFID(&rnm->cr_spfid));
+
 		rc = lustre_invalidate_entry(lustre_fs,
 					     event_func,
 					     &rec->cr_pfid);
+		if (rc)
+			LogDebug(COMPONENT_FSAL,
+				 "Could not invalidate fid="DFID,
+				 PFID(&rec->cr_pfid));
+
+		rc = lustre_invalidate_entry(lustre_fs,
+					     event_func,
+					     &rec->cr_tfid);
+		if (rc)
+			LogDebug(COMPONENT_FSAL,
+				 "Could not invalidate fid="DFID,
+				 PFID(&rec->cr_tfid));
+
 		break;
 	case CL_ATIME:
 	case CL_MTIME:
 	case CL_CTIME:
+	case CL_SETATTR:
 		/* invalidate target entry */
 		rc = lustre_invalidate_entry(lustre_fs,
 					     event_func,
 					     &rec->cr_tfid);
+		if (rc)
+			LogDebug(COMPONENT_FSAL,
+				 "Could not invalidate fid="DFID,
+				 PFID(&rec->cr_tfid));
 		break;
 	default:
 		/* untracked record type */
